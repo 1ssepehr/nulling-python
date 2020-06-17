@@ -1,6 +1,6 @@
-from math import cos, acos, pi, radians
+from converter import deg_to_u, range_in_deg
 from cmath import exp
-from numpy import arange
+from math import radians, pi
 
 def compute_pattern(res=0.1, N=16, k=1, weights=None, single_patterns=None, calibration=None):
     """Computes the pattern absolute value of the given parameters.
@@ -37,17 +37,6 @@ def compute_pattern(res=0.1, N=16, k=1, weights=None, single_patterns=None, cali
 
 
     return pattern
-
-
-def deg_to_u(degrees):
-    return [cos(x * pi / 180) for x in degrees]
-
-def range_in_deg(res):
-    return list(arange(0, 180 + res, res))
-
-def u_to_deg(u):
-    return [acos(x) * 180 / pi for x in u]
-
 
 
 if __name__ == "__main__":
