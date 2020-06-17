@@ -1,5 +1,6 @@
-from math import log10
 import matplotlib.pyplot as plt
+from math import log10
+from utils.pattern import range_in_deg
 
 def plot_data(data_x, res, isLog):
     """Plots the dataset data_x against [0:res:180].
@@ -9,7 +10,7 @@ def plot_data(data_x, res, isLog):
         if elem < 0:
             raise ValueError("negative values in list 'data_x'")
     
-    data_y = [k * res for k in range(0, int(180 / res) + 1)] # res = 180/(N-1) where N = len(data_x)
+    data_y = range_in_deg(res)
 
     if len(data_x) != len(data_y): # size of each dataset must be N = 1 + (180/res)
         raise ValueError("resolution doesn't match with data_x's length")
@@ -19,3 +20,6 @@ def plot_data(data_x, res, isLog):
 
     plt.plot(data_y, data_x)
     plt.show()
+
+if __name__ == "__main__":
+    pass
