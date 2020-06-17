@@ -32,8 +32,8 @@ def compute_pattern(res=0.1, N=16, k=1, weights=None, single_patterns=None, cali
     assert len(weights) == len(calibration) == len(single_patterns) == N, \
          "some vector here has the wrong length! (weights, calibration, single_patterns)"
 
-    pattern = [abs(sum(weights[ant_i] * exp(-1j * (k * pi * u * ant_i - calibration_rad[ant_i]))) \
-     for ant_i in range(N)) for u in cos_degs]
+    pattern = [abs(sum([weights[ant_i] * exp(-1j * (k * pi * u * ant_i - calibration_rad[ant_i])) \
+     for ant_i in range(N)])) for u in cos_degs]
 
 
     return pattern
@@ -51,5 +51,4 @@ def u_to_deg(u):
 
 
 if __name__ == "__main__":
-    plot_data(compute_pattern(), 0.1, 1)
 
