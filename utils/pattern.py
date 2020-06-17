@@ -51,4 +51,4 @@ def u_to_deg(u):
 
 
 if __name__ == "__main__":
-
+    print(compute_pattern())
