@@ -18,7 +18,10 @@ class BaseOptions():
         parser.add_argument('--k', type=float, default=1, help='d over lambda ratio, where lambda is the wavelength')
         parser.add_argument('--total_bits', type=int, defualt=6, help='total number of bits available')
         parser.add_argument('--patterns_file', type=str, default='all_one', help='individual pattern')
-
+        parser.add_argument('--calib_file', type=str, , default='all_zero', help='filepath containing calibration values')
+        parser.add_argument('--weights_file', type=str, default='all_one', help='filepath containing antenna weights and turn on/offs')
+        parser.add_argument('--angles', type=str, default='linear', help='how antenna vector angles are defined.')
+        parser.add_argument('--angle_offset', type=int, default=0, help='angle offset after calibration')
 
         self.initialized = True
         return parser
