@@ -1,7 +1,6 @@
 from math import cos, acos, pi, radians
 from cmath import exp
 from numpy import arange
-from visualizer import plot_data
 
 def compute_pattern(res=0.1, N=16, k=1, weights=None, single_patterns=None, calibration=None):
     """Computes the pattern absolute value of the given parameters.
