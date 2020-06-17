@@ -1,4 +1,5 @@
 from math import cos, pi
+from numpy import arange
 
 def compute_pattern(res=0.1, N=16, weights=None, single_patterns=None, calibration=None):
     """Computes the pattern absolute value of the given parameters.
@@ -30,5 +31,8 @@ def deg_to_u(degrees):
 
 
 def range_in_deg(res):
-    return list(range(0, res, 180 + res))
+    return list(arange(0, 180 + res, res))
 
+
+if __name__ == "__main__":
+    print(range_in_deg(0.1))
