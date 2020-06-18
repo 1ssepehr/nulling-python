@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 from math import log10
-from utils.pattern import range_in_deg
+# from utils.pattern import range_in_deg
+from pattern import range_in_deg, compute_pattern
 
 def plot_data(data_x, res, isLog):
     """Plots the dataset data_x against [0:res:180].
@@ -22,4 +23,7 @@ def plot_data(data_x, res, isLog):
     plt.show()
 
 if __name__ == "__main__":
+    x = compute_pattern()
+    res = 0.1
+    plot_data(x, res, True)
     pass
