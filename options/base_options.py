@@ -3,7 +3,7 @@ import os
 
 
 class BaseOptions():
-    """This class defines options used in the program.
+    """This class defines options used in the nulling program.
     """
 
     def __init__(self):
@@ -18,10 +18,21 @@ class BaseOptions():
         parser.add_argument('--k', type=float, default=1, help='d over lambda ratio, where lambda is the wavelength')
         parser.add_argument('--total_bits', type=int, defualt=6, help='total number of bits available')
         parser.add_argument('--patterns_file', type=str, default='all_one', help='individual pattern')
-        parser.add_argument('--calib_file', type=str, , default='all_zero', help='filepath containing calibration values')
+        parser.add_argument('--calib_file', type=str, default='all_zero', help='filepath containing calibration values')
         parser.add_argument('--weights_file', type=str, default='all_one', help='filepath containing antenna weights and turn on/offs')
         parser.add_argument('--angles', type=str, default='linear', help='how antenna vector angles are defined.')
-        parser.add_argument('--angle_offset', type=int, default=0, help='angle offset after calibration')
+        parser.add_argument('--ang_offset', type=int, default=0, help='angle offset after calibration')
+        parser.add_argument('--comp_file', type=str, default='all_one', help='filepath containing temporal compensation vectors')
+        parser.add_argument('--main_ang', type=float, default=90, help='mainlobe angle in degrees')
+        parser.add_argument('--plot_results', type=bool, default=False, help='whether or not to plot the results')
+
+        parser.add_argument('--signal', type=float, default=1.0, help='signal power (normalized)')
+        parser.add_argument('--signal_ang', type=float, default=90, help='direction at which we receive the signal')
+
+        parser.add_argument('--noise', type=float, default = 0.0, help='noise power (normalized)')
+
+        parser.add_argument('--interference_file', type=str, default='all_zero', help='filepath containing interference information')
+        
 
         self.initialized = True
         return parser
