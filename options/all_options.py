@@ -32,7 +32,7 @@ class BaseOptions():
         parser.add_argument('--noise', type=float, default = 0.0, help='noise power (normalized)')
 
         parser.add_argument('--interference_file', type=str, default='all_zero', help='filepath containing interference information')
-        
+        parser.add_argument('--null_degs_file', type=str, default='empty', help='filepath containing the null degrees (and weights)')
 
         self.initialized = True
         return parser

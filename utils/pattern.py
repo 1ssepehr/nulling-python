@@ -1,4 +1,4 @@
-from converter import deg_to_u, range_in_deg
+from .converter import deg_to_u, range_in_deg
 from cmath import exp
 from math import radians, pi
 
@@ -15,6 +15,17 @@ def compute_pattern(res=0.1, N=16, k=1, weights=None, single_patterns=None, cali
     weights and single_patterns are assumed to be normalized. 
     calibration values are assumed to be in degrees. 
 
+    """
+    single_pattern = compute_single_pattern(res=res, N=N, k=k, weights=weights, \
+        single_patterns=single_patterns, calibration=calibration, degrees=degrees)
+
+    pattern = [abs(sum( pattern_i )) for pattern_i in single_pattern]
+
+    return pattern
+
+def compute_single_pattern(res=0.1, N=16, k=1, weights=None, single_patterns=None, calibration=None, degrees=None):
+    """Computes the single pattern of each of the antennas given the parameters in a nested list.
+    see compute_pattern for more details.
     """
     if degrees is None:
         degrees = range_in_deg(res)
@@ -35,11 +46,12 @@ def compute_pattern(res=0.1, N=16, k=1, weights=None, single_patterns=None, cali
          "some vector here has the wrong length! (weights, calibration, single_patterns)"
 
 
-    pattern = [abs(sum([weights[ant_i] * exp(-1j * (k * pi * u * ant_i - calibration_rad[ant_i])) \
-     for ant_i in range(N)])) for u in cos_degs]
+    single_pattern = [[weights[ant_i] * exp(-1j * (k * pi * u * ant_i - calibration_rad[ant_i])) \
+     for ant_i in range(N)] for u in cos_degs]
 
 
-    return pattern
+    return single_pattern
+
 
 
 if __name__ == "__main__":

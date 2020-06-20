@@ -10,6 +10,6 @@ class Nullifier():
         self.k = options.k
         self.res = options.res
         self.N = options.N
+
         self.patterns_file = options.patterns_file
         self.null_deg_file = options.null_deg_file
-        
