@@ -1,14 +1,22 @@
 import sys
-from PySide2.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QSlider
+from PySide2.QtWidgets import QMainWindow, QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSlider
 from PySide2.QtCore import Slot
 from PySide2.QtGui import Qt
 
 
-class DataVisualizer(QWidget):
-    def __init__(self, parent=None):
-        super(DataVisualizer, self).__init__(parent)
+class MainWindow(QMainWindow):
+    def __init__(self, widget, parent=None):
+        super(MainWindow, self).__init__()
+        self.setWindowTitle("Parameter Simulation")
+        self.setCentralWidget(widget)
 
-        Layout = QVBoxLayout()
+
+class VariableWidget(QWidget):
+    def __init__(self, parent=None):
+        super(VariableWidget, self).__init__(parent)
+
+        # Right
+        self.right = QVBoxLayout()
 
         self.lbl1 = QLabel("Var A = 50")
         self.initLabel(self.lbl1)
@@ -28,21 +36,30 @@ class DataVisualizer(QWidget):
         self.sl3 = QSlider(Qt.Horizontal)
         self.initSlider(self.sl3)
 
-        Layout.addWidget(self.lbl1)
-        Layout.addWidget(self.sl1)
+        self.right.addWidget(self.lbl1)
+        self.right.addWidget(self.sl1)
         
-        Layout.addWidget(self.lbl2)
-        Layout.addWidget(self.sl2)
+        self.right.addWidget(self.lbl2)
+        self.right.addWidget(self.sl2)
         
-        Layout.addWidget(self.lbl3)
-        Layout.addWidget(self.sl3)
+        self.right.addWidget(self.lbl3)
+        self.right.addWidget(self.sl3)
 
+        # Left
+        self.left = QVBoxLayout()
+        self.lbl4 = QLabel("Placeholder")
+        self.left.addWidget(self.lbl4)
+
+        # Signals and Slots
         self.sl1.valueChanged.connect(self.update_parameters)
         self.sl2.valueChanged.connect(self.update_parameters)
         self.sl3.valueChanged.connect(self.update_parameters)
 
-        self.setLayout(Layout)
-        self.setWindowTitle("Slider test")
+        # Final Layout
+        self.layout = QHBoxLayout()
+        self.layout.addLayout(self.right)
+        self.layout.addLayout(self.left)
+        self.setLayout(self.layout)
 
     def initSlider(self, slider):
         slider.setMinimum(0)
@@ -67,6 +84,10 @@ class DataVisualizer(QWidget):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    ex = DataVisualizer()
-    ex.show()
+    
+    widget = VariableWidget()
+    window = MainWindow(widget)
+    window.setCentralWidget(widget)
+    window.show()
+
     sys.exit(app.exec_())
