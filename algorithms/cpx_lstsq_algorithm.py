@@ -2,7 +2,7 @@ from .base_algorithm import BaseAlgorithm
 from utils.pattern import compute_single_pattern
 import numpy as np
 
-class CpxWeightsAlgorithm(BaseAlgorithm):
+class CpxLstsqAlgorithm(BaseAlgorithm):
     """ Finds nulls by considering the linear equations 
     that come out of the nulling and mainlobe constraints
     """
@@ -34,7 +34,7 @@ if __name__ == "__main__":
     options.N = 16
     options.main_ang = 90
     options.null_degrees = [45, 46, 47, 48]
-    solver = CpxWeightsAlgorithm(options)
+    solver = CpxLstsqAlgorithm(options)
     print(solver.solve())
 
 
