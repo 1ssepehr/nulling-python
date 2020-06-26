@@ -1,4 +1,4 @@
-from .converter import deg_to_u, range_in_deg
+from converter import deg_to_u, range_in_deg
 from cmath import exp
 from math import radians, pi
 
