@@ -15,12 +15,13 @@ class Parameter:
         self.value = value
         self.min = min
         self.max = max
-        
+
     def scaleTo100Ratio(self, value) -> int:
         return int(100 * ((value - self.min) / (self.max - self.min)))
 
     def scaleFrom100Ratio(self, ratio_value) -> float:
         return self.min + (ratio_value / 100) * (self.max - self.min)
+
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow, parameterSet):
@@ -40,14 +41,14 @@ class Ui_MainWindow(object):
 
         # Parameters
         self.parameterSet = parameterSet
-        
+
         # Menu Bar actions (Top)
         self.menubar = QMenuBar(MainWindow)
 
         self.menuFile = QMenu(self.menubar)
         self.menuChart = QMenu(self.menubar)
         self.menuHelp = QMenu(self.menubar)
-        
+
         self.actionOpen = QAction(MainWindow)
         self.actionSave = QAction(MainWindow)
         self.actionExit = QAction(MainWindow)
@@ -67,7 +68,7 @@ class Ui_MainWindow(object):
         # Status Bar (Bottom)
         self.statusbar = QStatusBar(MainWindow)
         MainWindow.setStatusBar(self.statusbar)
-        
+
         # Toolbox for parameters (Left)
         self.parameterControlList = []
         self.labelList = []
@@ -86,10 +87,12 @@ class Ui_MainWindow(object):
             newLineEdit.setSizePolicy(fixedSizePolicy)
             newLineEdit.setMaximumSize(QSize(48, 16777215))
             newLineEdit.setText(str(parameter.value))
-            newLineEdit.textChanged.connect(lambda: self.update_parameters(source=QLineEdit))
+            newLineEdit.textChanged.connect(
+                lambda: self.update_parameters(source=QLineEdit)
+            )
             newLabel.setBuddy(newLineEdit)
 
-            # Horizontal Slider 
+            # Horizontal Slider
             newSlider = QSlider(Qt.Horizontal, self.centralwidget)
             newSlider.setSizePolicy(expandingSizePolicy)
             newSlider.setMinimumSize(QSize(100, 0))
@@ -97,7 +100,9 @@ class Ui_MainWindow(object):
             newSlider.setValue(parameter.scaleTo100Ratio(parameter.value))
             newSlider.setTickPosition(QSlider.TicksBelow)
             newSlider.setTickInterval(5)
-            newSlider.valueChanged.connect(lambda: self.update_parameters(source=QSlider))
+            newSlider.valueChanged.connect(
+                lambda: self.update_parameters(source=QSlider)
+            )
 
             # Bundle layout for label, line edit, and slider
             newControlLayout = QHBoxLayout()
@@ -109,7 +114,7 @@ class Ui_MainWindow(object):
             self.labelList.append(newLabel)
             self.lineEditList.append(newLineEdit)
             self.sliderList.append(newSlider)
-            
+
             self.toolboxLayout.addLayout(newControlLayout)
 
         # Checkbox for using log10
@@ -117,7 +122,9 @@ class Ui_MainWindow(object):
         self.useLog10Checkbox.setChecked(True)
         self.toolboxLayout.addWidget(self.useLog10Checkbox)
 
-        self.toolboxSpacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        self.toolboxSpacer = QSpacerItem(
+            20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding
+        )
         self.toolboxLayout.addItem(self.toolboxSpacer)
 
         # Plot Widget (Right)
@@ -144,7 +151,9 @@ class Ui_MainWindow(object):
         QMetaObject.connectSlotsByName(MainWindow)
 
     def update_parameters(self, source):
-        for slider, lineEdit, parameter in zip(self.sliderList, self.lineEditList, self.parameterSet):
+        for slider, lineEdit, parameter in zip(
+            self.sliderList, self.lineEditList, self.parameterSet
+        ):
             if source == QSlider:
                 newValue = parameter.scaleFrom100Ratio(slider.value())
                 parameter.value = newValue
@@ -164,40 +173,64 @@ class Ui_MainWindow(object):
         self.chart.set_xlabel("Degrees (°)")
         self.chart.set_ylabel("dB")
 
-        customWeights = [exp(2 * pi * 1j * x.value) for x in self.parameterSet] + ([1] * (16 - len(self.parameterSet)))
+        customWeights = [exp(2 * pi * 1j * x.value) for x in self.parameterSet] + (
+            [1] * (16 - len(self.parameterSet))
+        )
         data_x = compute_pattern(weights=customWeights)
-        
+
         for elem in data_x:
             if elem < 0:
                 raise ValueError("negative values in list 'data_x'")
-    
-        if(self.useLog10Checkbox.isChecked()):
-            data_x = list(map(lambda x: 10*log10(x), data_x))
+
+        if self.useLog10Checkbox.isChecked():
+            data_x = list(map(lambda x: 10 * log10(x), data_x))
             self.chart.set_ylim(-30, 10 * log10(16) + 1)
         else:
             self.chart.set_ylim(0, 18)
 
         data_y = range_in_deg(0.1)
 
-        if len(data_x) != len(data_y): # size of each dataset must be N = 1 + (180/res)
+        if len(data_x) != len(data_y):  # size of each dataset must be N = 1 + (180/res)
             raise ValueError("resolution doesn't match with data_x's length")
 
         self.chart.plot(data_y, data_x)
         self.chart.figure.canvas.draw()
 
     def retranslateUi(self, MainWindow):
-        MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Chart Viewer", None))
-        self.actionOpen.setText(QCoreApplication.translate("MainWindow", u"Open...", None))
-        self.actionOpen.setToolTip(QCoreApplication.translate("MainWindow", u"Open New File", None))
-        self.actionOpen.setShortcut(QCoreApplication.translate("MainWindow", u"Ctrl+O", None))
+        MainWindow.setWindowTitle(
+            QCoreApplication.translate("MainWindow", u"Chart Viewer", None)
+        )
+        self.actionOpen.setText(
+            QCoreApplication.translate("MainWindow", u"Open...", None)
+        )
+        self.actionOpen.setToolTip(
+            QCoreApplication.translate("MainWindow", u"Open New File", None)
+        )
+        self.actionOpen.setShortcut(
+            QCoreApplication.translate("MainWindow", u"Ctrl+O", None)
+        )
         self.actionSave.setText(QCoreApplication.translate("MainWindow", u"Save", None))
-        self.actionSave.setShortcut(QCoreApplication.translate("MainWindow", u"Ctrl+S", None))
+        self.actionSave.setShortcut(
+            QCoreApplication.translate("MainWindow", u"Ctrl+S", None)
+        )
         self.actionExit.setText(QCoreApplication.translate("MainWindow", u"Exit", None))
-        self.actionExit.setShortcut(QCoreApplication.translate("MainWindow", u"Ctrl+Q", None))
-        self.actionRefresh.setText(QCoreApplication.translate("MainWindow", u"Update Chart Info", None))
-        self.actionRefresh.setShortcut(QCoreApplication.translate("MainWindow", u"F5", None))
-        self.actionAbout.setText(QCoreApplication.translate("MainWindow", u"About...", None))
-        self.actionAbout.setShortcut(QCoreApplication.translate("MainWindow", u"F1", None))
+        self.actionExit.setShortcut(
+            QCoreApplication.translate("MainWindow", u"Ctrl+Q", None)
+        )
+        self.actionRefresh.setText(
+            QCoreApplication.translate("MainWindow", u"Update Chart Info", None)
+        )
+        self.actionRefresh.setShortcut(
+            QCoreApplication.translate("MainWindow", u"F5", None)
+        )
+        self.actionAbout.setText(
+            QCoreApplication.translate("MainWindow", u"About...", None)
+        )
+        self.actionAbout.setShortcut(
+            QCoreApplication.translate("MainWindow", u"F1", None)
+        )
         self.menuFile.setTitle(QCoreApplication.translate("MainWindow", u"File", None))
-        self.menuChart.setTitle(QCoreApplication.translate("MainWindow", u"Chart", None))
+        self.menuChart.setTitle(
+            QCoreApplication.translate("MainWindow", u"Chart", None)
+        )
         self.menuHelp.setTitle(QCoreApplication.translate("MainWindow", u"Help", None))
