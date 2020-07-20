@@ -7,3 +7,6 @@ class BaseAlgorithm():
     
     def check_parameters(self):
         pass
+
+    def solve(self):
+        pass
