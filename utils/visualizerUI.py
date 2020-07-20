@@ -72,6 +72,7 @@ class MainWindow(QMainWindow):
         self.aboutAct = QAction(
             "&About",
             self,
+            shortcut=QKeySequence.HelpContents,
             statusTip="Displays info about this software",
             triggered=self.about,
         )
@@ -79,6 +80,7 @@ class MainWindow(QMainWindow):
         self.aboutQtAct = QAction(
             "About &Qt",
             self,
+            shortcut="Ctrl+F1",
             statusTip="Show the Qt library's About box",
             triggered=self.aboutQt,
         )
@@ -102,7 +104,7 @@ class MainWindow(QMainWindow):
             "<b>Nulling-Python</b> is a small tool for analyzing and testing"
             " algorithms for nulling systems of mmWave WLANs. <br/>"
             " It is developed by Sepehr and Sohrab Madani and available on"
-            '<a href="https://gitlab.engr.illinois.edu/smadani2/nulling-python">'
+            "<a href='https://gitlab.engr.illinois.edu/smadani2/nulling-python'>"
             " UIUC Engineering Department Gitlab</a>.",
         )
 
@@ -120,12 +122,13 @@ class MainWindow(QMainWindow):
             # Label
             newLabel = QLabel(self.centralWidget)
             newLabel.setText("Var {}".format(parameter.name))
-            newLabel.setSizePolicy(prefSizePolicy)
+            newLabel.setSizePolicy(fixedSizePolicy)
+            newLabel.setFixedWidth(48)
 
             # Line Edit
             newLineEdit = QLineEdit(self.centralWidget)
             newLineEdit.setSizePolicy(fixedSizePolicy)
-            newLineEdit.setMaximumSize(QSize(48, 16777215))
+            newLineEdit.setFixedWidth(36)
             newLineEdit.setText(str(parameter.value))
             newLineEdit.textChanged.connect(
                 lambda: self.update_parameters(source=QLineEdit)
