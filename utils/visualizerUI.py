@@ -8,7 +8,7 @@ from PySide2.QtGui import QKeySequence
 from matplotlib.backends.backend_qt5agg import FigureCanvas, NavigationToolbar2QT
 from matplotlib.figure import Figure
 
-from pattern import compute_pattern, range_in_deg
+from utils.pattern import compute_pattern, range_in_deg
 
 
 # Define Size Policies
@@ -204,8 +204,9 @@ class MainWindow(QMainWindow):
 
     def update_chart(self):
         self.chart.clear()
-        self.chart.set_xticks([15 * x for x in range(13)])
+        self.chart.set_xticks([10 * x for x in range(19)])
         self.chart.set_xlabel("Degrees (°)")
+        self.chart.grid(True, linestyle="--")
 
         customWeights = [exp(2 * pi * 1j * x.value) for x in self.parameterSet] + (
             [1] * (16 - len(self.parameterSet))
@@ -231,15 +232,3 @@ class MainWindow(QMainWindow):
 
         self.chart.plot(data_y, data_x)
         self.chart.figure.canvas.draw()
-
-
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-
-    testParam = []
-    for i in range(16):
-        testParam.append(Parameter("a" + str(i + 1), 0.5))
-
-    main = MainWindow(testParam)
-    main.show()
-    sys.exit(app.exec_())
