@@ -24,8 +24,8 @@ class Parameter:
         self.min = min
         self.max = max
 
-    def scaleTo100Ratio(self, value) -> int:
-        return int(100 * ((value - self.min) / (self.max - self.min)))
+    def scaleTo100Ratio(self) -> int:
+        return int(100 * ((self.value - self.min) / (self.max - self.min)))
 
     def scaleFrom100Ratio(self, ratio_value) -> float:
         return self.min + (ratio_value / 100) * (self.max - self.min)
@@ -141,7 +141,7 @@ class MainWindow(QMainWindow):
             newSlider.setSizePolicy(expandingSizePolicy)
             newSlider.setMinimumSize(QSize(100, 0))
             newSlider.setRange(0, 100)
-            newSlider.setValue(parameter.scaleTo100Ratio(parameter.value))
+            newSlider.setValue(parameter.scaleTo100Ratio())
             newSlider.setTickPosition(QSlider.TicksBelow)
             newSlider.setTickInterval(5)
             newSlider.valueChanged.connect(
@@ -203,36 +203,36 @@ class MainWindow(QMainWindow):
     #             try:
     #                 newValue = float(lineEdit.text())
     #                 parameter.value = newValue
-    #                 slider.setValue(parameter.scaleTo100Ratio(newValue))
+    #                 slider.setValue(parameter.scaleTo100Ratio())
     #             except ValueError:
     #                 pass
       
     #         if source == None:
     #             newValue = round(parameter.value, 4)
-    #             slider.setValue(parameter.scaleTo100Ratio(newValue))
+    #             slider.setValue(parameter.scaleTo100Ratio())
     #             lineEdit.setText(str(newValue))
 
     #     self.update_chart()
 
     def update_parameters(self, source=None):
-        for idx in range(len(self.parameterSet)):
-            if source == QSlider:
+        if source == QSlider:
+            for idx in range(len(self.parameterSet)):
                 newValue = self.parameterSet[idx].scaleFrom100Ratio(self.sliderList[idx].value())
                 self.parameterSet[idx].value = newValue
                 self.lineEditList[idx].setText(str(newValue))
 
-            if source == QLineEdit:
+        if source == QLineEdit:
+            for idx in range(len(self.parameterSet)):
                 try:
-                    newValue = float(self.lineEditList[idx].text())
-                    self.parameterSet[idx].value = newValue
-                    self.sliderList[idx].setValue(self.parameterSet[idx].scaleTo100Ratio(newValue))
+                    self.parameterSet[idx].value = float(self.lineEditList[idx].text())
+                    self.sliderList[idx].setValue(self.parameterSet[idx].scaleTo100Ratio())
                 except ValueError:
                     pass
-      
-            if source == None:
-                newValue = self.parameterSet[idx].value
-                self.sliderList[idx].setValue(self.parameterSet[idx].scaleTo100Ratio(newValue))
-                self.lineEditList[idx].setText(str(newValue))
+        
+        if source is None:
+            for idx in range(len(self.parameterSet)):
+                self.sliderList[idx].setValue(self.parameterSet[idx].scaleTo100Ratio())
+                self.lineEditList[idx].setText(str(self.parameterSet[idx].value))
 
         self.update_chart()
 
@@ -270,13 +270,10 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage("Ready")
 
     def call_algorithm(self):
-        self.statusBar().showMessage("Re-running the algorithm...", 2000)
         A = [x.value for x in self.parameterSet]
         self.parameterSet = self.paramBuilder.build_params()
         B = [x.value for x in self.parameterSet]
         diff = [int(100 * (a - b)) for a, b in zip(A, B)]
-        if sum(diff) > 25:
+        if sum(list(map(abs, diff))) > 0:
             print(diff)
             self.update_parameters()
-        print("chart updated")
-        self.statusBar().showMessage("Ready")
