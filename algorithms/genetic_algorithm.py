@@ -45,7 +45,7 @@ class GeneticAlgorithm(BaseAlgorithm):
 
     def solve(self):
         for generation in range(self.gen_to_repeat):
-            for ii in range(self.sample_size // 2, self.sample_size, 2):
+            for ii in range(self.sample_size // 2, self.sample_size - 1, 2):
                 p1, p2 = random.sample(range(self.sample_size // 2), 2)
                 self.crossover(p1, p2, ii, ii + 1)
             self.mutate_sample()
