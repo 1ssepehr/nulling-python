@@ -12,6 +12,7 @@ def compute_pattern(
     single_patterns=None,
     calibration=None,
     degrees=None,
+    use_absolute_value=True
 ):
     """Computes the pattern absolute value of the given parameters.
 
@@ -36,8 +37,8 @@ def compute_pattern(
         degrees=degrees,
     )
 
-    pattern = [abs(sum(pattern_i)) for pattern_i in single_pattern]
-    return pattern
+    pattern = [sum(pattern_i) for pattern_i in single_pattern]
+    return list(map(abs, pattern)) if use_absolute_value == True else pattern
 
 def compute_single_pattern(
     res=0.1,
