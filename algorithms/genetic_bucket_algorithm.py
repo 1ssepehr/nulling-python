@@ -64,23 +64,20 @@ class GeneticBucketAlgorithm(BaseAlgorithm):
                     chromosome.gene[idx] = Chromosome.new_gene(self.bit_count)
 
     def update_fitness(self, use_exact_angle=True):
+        self.buckets = [[]] * 8
         for chromosome in self.chromosomes:
-            chromosome.fitness = -20 * log10(
-                abs(
-                    compute_pattern(
-                        N=self.N,
-                        k=self.k,
-                        weights=self.make_weights(chromosome),
-                        degrees=self.null_degrees,
-                        use_absolute_value=False,
-                    )[0]
-                )
-            )
+            chromosome.fitness = compute_pattern(
+                N=self.N,
+                k=self.k,
+                weights=self.make_weights(chromosome),
+                degrees=self.null_degrees,
+                use_absolute_value=False,
+            )[0]
             bucket_idx = int(((cmath.phase(chromosome.fitness) + pi) / (2 * pi)) * 8) % 8
             self.buckets[bucket_idx].append(chromosome)
 
     def sort_fitness(self):
-        self.chromosomes.sort(key=lambda x: abs(x.fitness), reverse=True)
+        self.chromosomes.sort(key=lambda x: -20 * log10(abs(x.fitness)), reverse=True)
 
     def make_weights(self, chromosome):
         weights = []
