@@ -34,16 +34,14 @@ class GeneticAlgorithm(BaseAlgorithm):
         self.mutation_factor = options.mutation_factor
 
         self.check_parameters()
-        self.chromosomes = [
-            Chromosome(self.N, self.bit_count) for i in range(self.sample_size)
-        ]
-        self.update_fitness()
-        self.sort_fitness()
 
     def check_parameters(self):
         super().check_parameters()
 
     def solve(self):
+        self.intialize_sample()
+        self.update_fitness()
+        self.sort_fitness()
         for generation in range(self.gen_to_repeat):
             for ii in range(self.sample_size // 2, self.sample_size - 1, 2):
                 p1, p2 = random.sample(range(self.sample_size // 2), 2)
@@ -53,9 +51,7 @@ class GeneticAlgorithm(BaseAlgorithm):
             self.sort_fitness()
 
             # print(["{:.2f}".format(x.fitness) for x in self.chromosomes[:15]])
-        return [
-            cmath.exp(1j * self.get_angle(bits)) for bits in self.chromosomes[0].gene
-        ]
+        return self.make_weights(self.chromosomes[0])
 
     def mutate_sample(self):
         for chromosome in self.chromosomes[1:]:  # for all except the best chromosome
@@ -70,9 +66,7 @@ class GeneticAlgorithm(BaseAlgorithm):
                 for x in compute_pattern(
                     N=self.N,
                     k=self.k,
-                    weights=[
-                        cmath.exp(1j * self.get_angle(bits)) for bits in chromosome.gene
-                    ],
+                    weights=self.make_weights(chromosome),
                     degrees=self.null_degrees,
                 )
             ]
@@ -81,10 +75,12 @@ class GeneticAlgorithm(BaseAlgorithm):
     def sort_fitness(self):
         self.chromosomes.sort(key=lambda x: x.fitness, reverse=True)
 
-    def get_angle(self, bits):
-        return (
-            (bits - (2 ** self.bit_count - 1) / 2) * 2 * pi / (2 ** self.bit_resolution)
-        )
+    def make_weights(self, chromosome):
+        weights = []
+        for bits in chromosome.gene:
+            angle = (bits - (2 ** self.bit_count - 1) / 2) * 2 * pi / (2 ** self.bit_resolution)
+            weights.append(cmath.exp(1j * angle))
+        return weights
 
     def crossover(self, p1, p2, c1, c2):
         self.chromosomes[c1] = deepcopy(self.chromosomes[p1])
@@ -95,3 +91,8 @@ class GeneticAlgorithm(BaseAlgorithm):
                     self.chromosomes[c1].gene[i],
                     self.chromosomes[c2].gene[i],
                 )
+
+    def intialize_sample(self):
+        self.chromosomes = [
+            Chromosome(self.N, self.bit_count) for i in range(self.sample_size)
+        ]
