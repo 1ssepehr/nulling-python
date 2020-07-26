@@ -32,7 +32,7 @@ class Parameter:
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, parameterSet):
+    def __init__(self, param_builder):
         super().__init__()
 
         self.centralWidget = QWidget()
@@ -40,8 +40,9 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Chart Display")
         self.resize(1280, 720)
 
-        self.parameterSet = parameterSet
-
+        
+        self.paramBuilder = param_builder
+        self.parameterSet = self.paramBuilder.build_params()
         self.create_actions()
         self.create_menus()
         self.create_status_bar()
@@ -128,7 +129,7 @@ class MainWindow(QMainWindow):
             # Line Edit
             newLineEdit = QLineEdit(self.centralWidget)
             newLineEdit.setSizePolicy(fixedSizePolicy)
-            newLineEdit.setFixedWidth(36)
+            newLineEdit.setFixedWidth(64)
             newLineEdit.setText(str(parameter.value))
             newLineEdit.textChanged.connect(
                 lambda: self.update_parameters(source=QLineEdit)
@@ -160,6 +161,10 @@ class MainWindow(QMainWindow):
 
             self.toolboxLayout.addLayout(newControlLayout)
 
+        self.rerunButton = QPushButton("Re-run")
+        self.rerunButton.clicked.connect(self.call_algorithm)
+        self.toolboxLayout.addWidget(self.rerunButton)
+
         self.toolboxSpacer = QSpacerItem(
             20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding
         )
@@ -185,24 +190,54 @@ class MainWindow(QMainWindow):
         self.centralLayout.setStretch(1, 5)
         self.centralWidget.setLayout(self.centralLayout)
 
-    def update_parameters(self, source):
-        for slider, lineEdit, parameter in zip(
-            self.sliderList, self.lineEditList, self.parameterSet
-        ):
+    # def update_parameters(self, source=None):
+    #     for slider, lineEdit, parameter in zip(
+    #         self.sliderList, self.lineEditList, self.parameterSet
+    #     ):
+    #         if source == QSlider:
+    #             newValue = parameter.scaleFrom100Ratio(slider.value())
+    #             parameter.value = newValue
+    #             lineEdit.setText(str(newValue))
+
+    #         if source == QLineEdit:
+    #             try:
+    #                 newValue = float(lineEdit.text())
+    #                 parameter.value = newValue
+    #                 slider.setValue(parameter.scaleTo100Ratio(newValue))
+    #             except ValueError:
+    #                 pass
+      
+    #         if source == None:
+    #             newValue = round(parameter.value, 4)
+    #             slider.setValue(parameter.scaleTo100Ratio(newValue))
+    #             lineEdit.setText(str(newValue))
+
+    #     self.update_chart()
+
+    def update_parameters(self, source=None):
+        for idx in range(len(self.parameterSet)):
             if source == QSlider:
-                newValue = parameter.scaleFrom100Ratio(slider.value())
-                parameter.value = newValue
-                lineEdit.setText(str(newValue))
+                newValue = self.parameterSet[idx].scaleFrom100Ratio(self.sliderList[idx].value())
+                self.parameterSet[idx].value = newValue
+                self.lineEditList[idx].setText(str(newValue))
+
             if source == QLineEdit:
                 try:
-                    newValue = float(lineEdit.text())
-                    parameter.value = newValue
-                    slider.setValue(parameter.scaleTo100Ratio(newValue))
+                    newValue = float(self.lineEditList[idx].text())
+                    self.parameterSet[idx].value = newValue
+                    self.sliderList[idx].setValue(self.parameterSet[idx].scaleTo100Ratio(newValue))
                 except ValueError:
                     pass
+      
+            if source == None:
+                newValue = self.parameterSet[idx].value
+                self.sliderList[idx].setValue(self.parameterSet[idx].scaleTo100Ratio(newValue))
+                self.lineEditList[idx].setText(str(newValue))
+
         self.update_chart()
 
     def update_chart(self):
+        self.statusBar().showMessage("Updating the chart...")
         self.chart.clear()
         self.chart.set_xticks([10 * x for x in range(19)])
         self.chart.set_xlabel("Degrees (°)")
@@ -232,3 +267,16 @@ class MainWindow(QMainWindow):
 
         self.chart.plot(data_y, data_x)
         self.chart.figure.canvas.draw()
+        self.statusBar().showMessage("Ready")
+
+    def call_algorithm(self):
+        self.statusBar().showMessage("Re-running the algorithm...", 2000)
+        A = [x.value for x in self.parameterSet]
+        self.parameterSet = self.paramBuilder.build_params()
+        B = [x.value for x in self.parameterSet]
+        diff = [int(100 * (a - b)) for a, b in zip(A, B)]
+        if sum(diff) > 25:
+            print(diff)
+            self.update_parameters()
+        print("chart updated")
+        self.statusBar().showMessage("Ready")
