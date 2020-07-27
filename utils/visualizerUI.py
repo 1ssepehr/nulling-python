@@ -1,4 +1,3 @@
-import sys
 from cmath import exp
 from math import log10, pi
 
@@ -9,12 +8,6 @@ from matplotlib.backends.backend_qt5agg import FigureCanvas, NavigationToolbar2Q
 from matplotlib.figure import Figure
 
 from utils.pattern import compute_pattern, range_in_deg
-
-
-# Define Size Policies
-prefSizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
-fixedSizePolicy = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
-expandingSizePolicy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
 
 
 class Parameter:
@@ -31,6 +24,55 @@ class Parameter:
         return self.min + (ratio_value / 100) * (self.max - self.min)
 
 
+class NullingSlider(QSlider):
+    def __init__(self, orientation, parent, default_value):
+        super().__init__(orientation=orientation, parent=parent)
+        self.parent = parent
+        self.setSizePolicy(QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred))
+        self.setMinimumSize(QSize(100, 0))
+        self.setRange(0, 100)
+        self.setTickPosition(QSlider.TicksBelow)
+        self.setTickInterval(5)
+        self.connect_signal()
+        self.update_value(default_value)
+
+    def connect_signal(self):
+        self.valueChanged.connect(lambda: self.parent.update_parameters(source=QSlider))
+
+    def update_value(self, new_value):
+        self.valueChanged.disconnect()
+        self.setValue(new_value)
+        self.connect_signal()
+
+
+class NullingLineEdit(QLineEdit):
+    def __init__(self, parent, default_value):
+        super().__init__(parent=parent)
+        self.parent = parent
+        self.setSizePolicy(QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred))
+        self.setFixedWidth(64)
+        self.connect_signal()
+        self.update_value(default_value)
+
+    def connect_signal(self):
+        self.textChanged.connect(
+            lambda: self.parent.update_parameters(source=QLineEdit)
+        )
+
+    def update_value(self, new_value):
+        self.textChanged.disconnect()
+        self.setText(str(new_value))
+        self.connect_signal()
+
+
+class NullingLabel(QLabel):
+    def __init__(self, parent, label):
+        super().__init__(parent=parent)
+        self.setText(str(label))
+        self.setSizePolicy(QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred))
+        self.setFixedWidth(32)
+
+
 class MainWindow(QMainWindow):
     def __init__(self, param_builder):
         super().__init__()
@@ -40,7 +82,6 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Chart Display")
         self.resize(1280, 720)
 
-        
         self.paramBuilder = param_builder
         self.parameterSet = self.paramBuilder.build_params()
         self.create_actions()
@@ -98,20 +139,6 @@ class MainWindow(QMainWindow):
     def create_status_bar(self):
         self.statusBar().showMessage("Ready")
 
-    def about(self):
-        QMessageBox.about(
-            self,
-            "About Nulling-Python",
-            "<b>Nulling-Python</b> is a small tool for analyzing and testing"
-            " algorithms for nulling systems of mmWave WLANs. <br/>"
-            " It is developed by Sepehr and Sohrab Madani and available on"
-            "<a href='https://gitlab.engr.illinois.edu/smadani2/nulling-python'>"
-            " UIUC Engineering Department Gitlab</a>.",
-        )
-
-    def aboutQt(self):
-        QMessageBox.aboutQt(self, "About Qt")
-
     def create_control_box(self):
         self.parameterControlList = []
         self.labelList = []
@@ -120,46 +147,18 @@ class MainWindow(QMainWindow):
         self.toolboxLayout = QVBoxLayout()
 
         for parameter in self.parameterSet:
-            # Label
-            newLabel = QLabel(self.centralWidget)
-            newLabel.setText("Var {}".format(parameter.name))
-            newLabel.setSizePolicy(fixedSizePolicy)
-            newLabel.setFixedWidth(48)
-
-            # Line Edit
-            newLineEdit = QLineEdit(self.centralWidget)
-            newLineEdit.setSizePolicy(fixedSizePolicy)
-            newLineEdit.setFixedWidth(64)
-            newLineEdit.setText(str(parameter.value))
-            newLineEdit.textChanged.connect(
-                lambda: self.update_parameters(source=QLineEdit)
-            )
-            newLabel.setBuddy(newLineEdit)
-
-            # Horizontal Slider
-            newSlider = QSlider(Qt.Horizontal, self.centralWidget)
-            newSlider.setSizePolicy(expandingSizePolicy)
-            newSlider.setMinimumSize(QSize(100, 0))
-            newSlider.setRange(0, 100)
-            newSlider.setValue(parameter.scaleTo100Ratio())
-            newSlider.setTickPosition(QSlider.TicksBelow)
-            newSlider.setTickInterval(5)
-            newSlider.valueChanged.connect(
-                lambda: self.update_parameters(source=QSlider)
-            )
+            # Create widgets for each parameter
+            self.labelList.append(NullingLabel(parent=self, label=parameter.name))
+            self.lineEditList.append(NullingLineEdit(self, parameter.value))
+            self.sliderList.append(NullingSlider(Qt.Horizontal, self, parameter.scaleTo100Ratio()))
 
             # Bundle layout for label, line edit, and slider
-            newControlLayout = QHBoxLayout()
-            newControlLayout.addWidget(newLabel)
-            newControlLayout.addWidget(newLineEdit)
-            newControlLayout.addWidget(newSlider)
+            self.parameterControlList.append(QHBoxLayout())
+            self.parameterControlList[-1].addWidget(self.labelList[-1])
+            self.parameterControlList[-1].addWidget(self.lineEditList[-1])
+            self.parameterControlList[-1].addWidget(self.sliderList[-1])
 
-            self.parameterControlList.append(newControlLayout)
-            self.labelList.append(newLabel)
-            self.lineEditList.append(newLineEdit)
-            self.sliderList.append(newSlider)
-
-            self.toolboxLayout.addLayout(newControlLayout)
+            self.toolboxLayout.addLayout(self.parameterControlList[-1])
 
         self.rerunButton = QPushButton("Re-run")
         self.rerunButton.clicked.connect(self.call_algorithm)
@@ -172,7 +171,7 @@ class MainWindow(QMainWindow):
 
     def create_plot_box(self):
         self.plotWidget = QWidget(self.centralWidget)
-        self.plotWidget.setSizePolicy(expandingSizePolicy)
+        self.plotWidget.setSizePolicy(QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred))
         self.plotWidget.setMinimumSize(QSize(720, 480))
         self.plotLayout = QVBoxLayout(self.plotWidget)
 
@@ -190,49 +189,25 @@ class MainWindow(QMainWindow):
         self.centralLayout.setStretch(1, 5)
         self.centralWidget.setLayout(self.centralLayout)
 
-    # def update_parameters(self, source=None):
-    #     for slider, lineEdit, parameter in zip(
-    #         self.sliderList, self.lineEditList, self.parameterSet
-    #     ):
-    #         if source == QSlider:
-    #             newValue = parameter.scaleFrom100Ratio(slider.value())
-    #             parameter.value = newValue
-    #             lineEdit.setText(str(newValue))
-
-    #         if source == QLineEdit:
-    #             try:
-    #                 newValue = float(lineEdit.text())
-    #                 parameter.value = newValue
-    #                 slider.setValue(parameter.scaleTo100Ratio())
-    #             except ValueError:
-    #                 pass
-      
-    #         if source == None:
-    #             newValue = round(parameter.value, 4)
-    #             slider.setValue(parameter.scaleTo100Ratio())
-    #             lineEdit.setText(str(newValue))
-
-    #     self.update_chart()
-
     def update_parameters(self, source=None):
-        if source == QSlider:
-            for idx in range(len(self.parameterSet)):
-                newValue = self.parameterSet[idx].scaleFrom100Ratio(self.sliderList[idx].value())
-                self.parameterSet[idx].value = newValue
-                self.lineEditList[idx].setText(str(newValue))
+        for slider, lineEdit, parameter in zip(
+            self.sliderList, self.lineEditList, self.parameterSet
+        ):
+            if source == QSlider:
+                newValue = parameter.scaleFrom100Ratio(slider.value())
+                parameter.value = newValue
+                lineEdit.update_value(newValue)
 
-        if source == QLineEdit:
-            for idx in range(len(self.parameterSet)):
+            if source == QLineEdit:
                 try:
-                    self.parameterSet[idx].value = float(self.lineEditList[idx].text())
-                    self.sliderList[idx].setValue(self.parameterSet[idx].scaleTo100Ratio())
+                    parameter.value = float(lineEdit.text())
+                    slider.update_value(parameter.scaleTo100Ratio())
                 except ValueError:
                     pass
-        
-        if source is None:
-            for idx in range(len(self.parameterSet)):
-                self.sliderList[idx].setValue(self.parameterSet[idx].scaleTo100Ratio())
-                self.lineEditList[idx].setText(str(self.parameterSet[idx].value))
+
+            if source == None:
+                slider.update_value(parameter.scaleTo100Ratio())
+                lineEdit.update_value(round(parameter.value, 4))
 
         self.update_chart()
 
@@ -277,3 +252,17 @@ class MainWindow(QMainWindow):
         if sum(list(map(abs, diff))) > 0:
             print(diff)
             self.update_parameters()
+
+    def about(self):
+        QMessageBox.about(
+            self,
+            "About Nulling-Python",
+            "<b>Nulling-Python</b> is a small tool for analyzing and testing"
+            " algorithms for nulling systems of mmWave WLANs. <br/>"
+            " It is developed by Sepehr and Sohrab Madani and available on"
+            "<a href='https://gitlab.engr.illinois.edu/smadani2/nulling-python'>"
+            " UIUC Engineering Department Gitlab</a>.",
+        )
+
+    def aboutQt(self):
+        QMessageBox.aboutQt(self, "About Qt")
