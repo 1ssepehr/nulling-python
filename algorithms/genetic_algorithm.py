@@ -53,7 +53,8 @@ class GeneticAlgorithm(BaseAlgorithm):
         self.buckets = None
         if options.use_buckets:
             self.bucket_count = options.bucket_count
-            self.buckets = [[]] * self.bucket_count
+            self.buckets = []
+            self.initialize_buckets()
 
         self.check_parameters()
 
@@ -125,8 +126,7 @@ class GeneticAlgorithm(BaseAlgorithm):
 
         # Allocate chromosomes to their respective buckets
         if self.buckets is not None:
-            self.buckets.clear()
-            self.buckets = [[]] * self.bucket_count
+            self.initialize_buckets()
             for chromosome in self.chromosomes:
                 bucket_idx = int(((phase(chromosome.fitness) + pi) / (2 * pi)) * self.bucket_count) % self.bucket_count
                 self.buckets[bucket_idx].append(chromosome)
@@ -198,5 +198,8 @@ class GeneticAlgorithm(BaseAlgorithm):
             ]
 
         if self.buckets is not None:
-            self.buckets.clear()
-            self.buckets = [[]] * self.bucket_count
+            self.initialize_buckets()
+
+    def initialize_buckets(self):
+        self.buckets.clear()
+        self.buckets = [[] for _ in range(self.bucket_count)]
