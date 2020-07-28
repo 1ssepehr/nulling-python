@@ -3,6 +3,7 @@ from cmath import exp, phase
 from copy import deepcopy
 from math import log10, pi
 from typing import List
+from time import time_ns
 
 from utils.pattern import compute_pattern
 
@@ -36,7 +37,12 @@ class GeneticAlgorithm(BaseAlgorithm):
         self.main_ang = options.main_ang
         self.sample_size = options.sample_size
         self.null_degrees = options.null_degrees
-        self.gen_to_repeat = options.gen_to_repeat
+        if options.limit_by_time:
+            self.time_based = True
+            self.time_limit = options.time_limit
+        else:
+            self.time_based = False
+            self.gen_to_repeat = options.gen_to_repeat
         self.bit_count = options.bit_count
         self.bit_resolution = options.bit_resolution
         self.mutation_factor = options.mutation_factor
@@ -60,13 +66,24 @@ class GeneticAlgorithm(BaseAlgorithm):
     def solve(self):
         self.initialize_sample()
         self.organize_sample()
+        generations = 0
 
-        for generation in range(self.gen_to_repeat):
-            self.create_children()
-            self.mutate_sample()
-            self.organize_sample()
+        if self.time_based:
+            start_time = time_ns()
+            while (time_ns() - start_time) // 10**6 <= self.time_limit:
+                self.create_children()
+                self.mutate_sample()
+                self.organize_sample()
+                generations += 1
 
-        return (self.make_weights(self.chromosomes[0]), self.chromosomes[0].get_score())
+        else:
+            for generation in range(self.gen_to_repeat):
+                self.create_children()
+                self.mutate_sample()
+                self.organize_sample()
+                generations += 1
+
+        return (self.make_weights(self.chromosomes[0]), self.chromosomes[0].get_score(), generations)
 
     def create_children(self):
         """Using the better half of the population, creates children overwriting the bottom half by doing crossovers.
