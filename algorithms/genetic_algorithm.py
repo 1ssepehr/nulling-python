@@ -40,19 +40,20 @@ class GeneticAlgorithm(BaseAlgorithm):
         self.main_ang = options.main_ang
         self.sample_size = options.sample_size
         self.null_degrees = options.null_degrees
-        if options.limit_by_time:
-            self.time_based = True
-            self.time_limit = options.time_limit
-        else:
-            self.time_based = False
-            self.gen_to_repeat = options.gen_to_repeat
         self.bit_count = options.bit_count
         self.bit_resolution = options.bit_resolution
         self.mutation_factor = options.mutation_factor
         self.overwrite_mutations = options.overwrite_mutations
         
-        self.chromosomes = []
+        self.stop_criterion = options.stop_criterion # time, target, iter
+        self.gen_to_repeat = options.gen_to_repeat
+        self.time_limit = options.time_limit
+        self.stop_after_score = options.stop_after_score
+        
+        self.generations = 0
 
+        self.chromosomes = []
+        
         self.buckets = None
         if options.use_buckets:
             self.bucket_count = options.bucket_count
@@ -66,28 +67,33 @@ class GeneticAlgorithm(BaseAlgorithm):
         if self.buckets is not None:
             assert len(self.null_degrees) == 1
             assert self.bucket_count & 1 == 0
+            assert self.stop_criterion is in ["time", "target", "iter"]
 
     def solve(self):
         self.initialize_sample()
         self.organize_sample()
-        generations = 0
-
-        if self.time_based:
-            start_time = time_ns()
-            while (time_ns() - start_time) // 10**6 <= self.time_limit:
-                self.create_children()
-                self.mutate_sample()
-                self.organize_sample()
-                generations += 1
-
-        else:
-            for generation in range(self.gen_to_repeat):
-                self.create_children()
-                self.mutate_sample()
-                self.organize_sample()
-                generations += 1
-
+        solve_function = getattr(self, "solve_" + self.stop_criterion)
+        solve_function()
         return (self.make_weights(self.chromosomes[0]), self.chromosomes[0].get_score(), generations)
+    
+    def solve_time(self):
+        start_time = time_ns()
+        while (time_ns() - start_time) // 10**6 <= self.time_limit:
+            self.step()
+
+    def solve_target(self):
+        start_time = time_ns()
+        while (time_ns() - start_time) // 10**6 <= 10 * 1000
+            self.step()
+
+    def solve_iter(self):
+        for generation in range(self.gen_to_repeat):
+            self.step()
+        
+    def step(self):
+        self.create_children()
+        self.mutate_sample()
+        self.organize_sample()
 
     def create_children(self):
         """Using the better half of the population, creates children overwriting the bottom half by doing crossovers.
@@ -109,6 +115,8 @@ class GeneticAlgorithm(BaseAlgorithm):
                     key=lambda x: abs(x.pattern + p1.pattern)
                 ) if len(self.buckets[bucket_opp]) > 0 else choice(self.chromosomes)
                 self.crossover_bucket(p1, p2, child, child + 1)
+        
+        self.generations += 1
 
     def organize_sample(self):
         """Reorganizes the sample by updating pattern for all chromosomes and sorting them by their scores.
