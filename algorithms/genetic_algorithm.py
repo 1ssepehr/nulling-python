@@ -1,7 +1,7 @@
 from random import randrange, random, choice, sample
 from cmath import exp, phase
 from copy import deepcopy
-from math import log10, pi
+from math import log10, pi, nan
 from typing import List
 from time import time_ns
 
@@ -13,12 +13,15 @@ from .base_algorithm import BaseAlgorithm
 class Chromosome:
     def __init__(self, n, bit_count):
         self.gene = [Chromosome.new_gene(bit_count) for _ in range(n)]
-        self.fitness = float("nan")
+        self.pattern = nan
         self.needs_update = True
 
+    def __hash__(self):
+        return hash(tuple(self.gene))
+
     def get_score(self):
-        """Evaluates a score based on chromosome's fitness"""
-        return -20 * log10(abs(self.fitness))
+        """Evaluates a score based on chromosome's pattern"""
+        return -20 * log10(abs(self.pattern))
 
     @staticmethod
     def new_gene(bit_count):
@@ -96,21 +99,25 @@ class GeneticAlgorithm(BaseAlgorithm):
                 self.crossover(p1, p2, child, child + 1)
             else:
                 bucket_idx = randrange(self.bucket_count)
+                while len(self.buckets[bucket_idx]) == 0:
+                    bucket_idx = (bucket_idx + 1) % self.bucket_count
+
+                bucket_opp = (bucket_idx + self.bucket_count//2) % self.bucket_count
                 p1 = choice(self.buckets[bucket_idx])
                 p2 = min(
-                    self.buckets[(bucket_idx + self.bucket_count//2) % self.bucket_count],
-                    key=lambda x: abs(x.fitness + p1.fitness)
-                )
+                    self.buckets[bucket_opp],
+                    key=lambda x: abs(x.pattern + p1.pattern)
+                ) if len(self.buckets[bucket_opp]) > 0 else choice(self.chromosomes)
                 self.crossover_bucket(p1, p2, child, child + 1)
 
     def organize_sample(self):
-        """Reorganizes the sample by updating fitness for all chromosomes and sorting them by their scores.
+        """Reorganizes the sample by updating pattern for all chromosomes and sorting them by their scores.
         Optionally, if use_buckets is True, allocates each chromosome to its respective bucket."""
         
-        # Update fitness
+        # Update pattern
         for chromosome in self.chromosomes:
             if chromosome.needs_update:
-                chromosome.fitness = min(
+                chromosome.pattern = min(
                     compute_pattern(
                         N=self.N,
                         k=self.k,
@@ -121,14 +128,14 @@ class GeneticAlgorithm(BaseAlgorithm):
                 )
                 chromosome.needs_update = False
 
-        # Sort sample by fitness
+        # Sort sample by chromosome score
         self.chromosomes.sort(key=lambda x: x.get_score(), reverse=True)
 
         # Allocate chromosomes to their respective buckets
         if self.buckets is not None:
             self.initialize_buckets()
             for chromosome in self.chromosomes:
-                bucket_idx = int(((phase(chromosome.fitness) + pi) / (2 * pi)) * self.bucket_count) % self.bucket_count
+                bucket_idx = int(((phase(chromosome.pattern) + pi) / (2 * pi)) * self.bucket_count) % self.bucket_count
                 self.buckets[bucket_idx].append(chromosome)
 
     def mutate_sample(self):
@@ -176,7 +183,7 @@ class GeneticAlgorithm(BaseAlgorithm):
                 )
 
     def crossover_bucket(self, p1, p2, c1, c2):
-        """Creates two children from parents' genes using AM-GM"""
+        """Creates two children from parents' genes using the AM-GM approximation"""
         
         for ii in range(self.N):
             g1 = p1.gene[ii]
