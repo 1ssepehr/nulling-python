@@ -154,6 +154,15 @@ class GeneticAlgorithm(BaseAlgorithm):
                 )
                 chromosome.needs_update = False
 
+        # Remove redundant chromosomes
+        hash_list = []
+        for chromosome in self.chromosomes:
+            this_hash = hash(chromosome)
+            if this_hash in hash_list:
+                chromosome = Chromosome()
+            else:
+                hash_list.append(this_hash)
+
         # Sort sample by chromosome score
         self.chromosomes.sort(key=lambda x: x.get_score(), reverse=True)
 
@@ -175,7 +184,6 @@ class GeneticAlgorithm(BaseAlgorithm):
             for idx, original in enumerate(self.chromosomes[1:self.sample_size + 1]):
                 mutated = self.chromosomes[idx + self.sample_size - 1]
                 mutated.gene = original.gene.copy()
-                mutated.needs_update = True
                 mutated.mutate()
 
     def make_weights(self, chromosome):
