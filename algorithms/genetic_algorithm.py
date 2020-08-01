@@ -1,18 +1,31 @@
 from random import randrange, random, choice, sample
 from cmath import exp, phase
-from copy import deepcopy
-from math import log10, pi, nan
+from math import log10, pi, nan, cos, sin
 from typing import List
 from time import time_ns
 
-from utils.pattern import compute_pattern
+from utils.pattern import compute_pattern, compute_single_pattern
 
 from .base_algorithm import BaseAlgorithm
 
 
 class Chromosome:
-    def __init__(self, n, bit_count):
-        self.gene = [Chromosome.new_gene(bit_count) for _ in range(n)]
+    N = None
+    BIT_COUNT = None
+    MUTATION_FACTOR = None
+
+    @classmethod
+    def init_consts(cls, N, bit_count, mutation_factor):
+        cls.N = N
+        cls.BIT_COUNT = bit_count
+        cls.MUTATION_FACTOR = mutation_factor
+
+    @classmethod
+    def new_gene(cls):
+        return randrange(0, 2**cls.BIT_COUNT)
+    
+    def __init__(self):
+        self.gene = [Chromosome.new_gene() for _ in range(self.N)]
         self.pattern = nan
         self.needs_update = True
 
@@ -23,9 +36,11 @@ class Chromosome:
         """Evaluates a score based on chromosome's pattern"""
         return -20 * log10(abs(self.pattern))
 
-    @staticmethod
-    def new_gene(bit_count):
-        return randrange(0, 2 ** bit_count)
+    def mutate(self):
+        for ii in range(self.N):
+            if random() <= self.MUTATION_FACTOR:
+                self.gene[ii] = Chromosome.new_gene()
+        self.needs_update = True
 
 
 class GeneticAlgorithm(BaseAlgorithm):
@@ -45,14 +60,17 @@ class GeneticAlgorithm(BaseAlgorithm):
         self.mutation_factor = options.mutation_factor
         self.overwrite_mutations = options.overwrite_mutations
 
+        Chromosome.init_consts(self.N, self.bit_count, self.mutation_factor)
+
         self.stop_criterion = options.stop_criterion # time, target, iter
         self.gen_to_repeat = options.gen_to_repeat
         self.time_limit = options.time_limit
         self.stop_after_score = options.stop_after_score
 
         self.generations = 0
-
         self.chromosomes = []
+
+        self.min_gene_deviation = 2 * sin(pi / 2 ** self.bit_resolution)
 
         self.buckets = None
         if options.use_buckets:
@@ -67,7 +85,7 @@ class GeneticAlgorithm(BaseAlgorithm):
         if self.buckets is not None:
             assert len(self.null_degrees) == 1
             assert self.bucket_count & 1 == 0
-            assert self.stop_criterion in ["time", "target", "iter"]
+        assert self.stop_criterion in ["time", "target", "iter"]
 
     def solve(self):
         self.initialize_sample()
@@ -151,31 +169,20 @@ class GeneticAlgorithm(BaseAlgorithm):
         Overwrites the previous chromosomes if overwrite_mutations is True."""
 
         if self.overwrite_mutations:
-            # For all except the best chromosome
             for chromosome in self.chromosomes[1:]:
-                chromosome.needs_update = True
-                for idx in range(self.N):
-                    if random() <= self.mutation_factor:
-                        chromosome.gene[idx] = Chromosome.new_gene(self.bit_count)
+                chromosome.mutate()
         else:
-            # For all except the best chromosome
-            for original in range(1, self.sample_size):
-                mutated = original + self.sample_size - 1
-                self.chromosomes[mutated].needs_update = True
-
-                for ii in range(self.N):
-                    if random() <= self.mutation_factor:
-                        self.chromosomes[mutated].gene[ii] = Chromosome.new_gene(self.bit_count)
-                    else:
-                        self.chromosomes[mutated].gene[ii] = self.chromosomes[original].gene[ii]
+            for idx, original in enumerate(self.chromosomes[1:self.sample_size + 1]):
+                mutated = self.chromosomes[idx + self.sample_size - 1]
+                mutated.gene = original.gene.copy()
+                mutated.needs_update = True
+                mutated.mutate()
 
     def make_weights(self, chromosome):
         """Returns e^{iθ} value for a chromosome's θs"""
 
-        weights = []
-        for bits in chromosome.gene:
-            angle = (bits - (2 ** self.bit_count - 1) / 2) * 2 * pi / (2 ** self.bit_resolution)
-            weights.append(complex(cos(angle), sin(angle)))
+        angles = [(bits - (2**self.bit_count - 1) / 2) * 2*pi / (2**self.bit_resolution) for bits in chromosome.gene]
+        weights = [complex(cos(theta), sin(theta)) for theta in angles]
         return weights
 
     def crossover(self, p1, p2, c1, c2):
@@ -206,11 +213,11 @@ class GeneticAlgorithm(BaseAlgorithm):
         self.chromosomes.clear()
         if self.overwrite_mutations:
             self.chromosomes = [
-                Chromosome(self.N, self.bit_count) for _ in range(self.sample_size)
+                Chromosome() for _ in range(self.sample_size)
             ]
         else:
             self.chromosomes = [
-                Chromosome(self.N, self.bit_count) for _ in range(self.sample_size * 2 - 1)
+                Chromosome() for _ in range(self.sample_size * 2 - 1)
             ]
 
         if self.buckets is not None:
