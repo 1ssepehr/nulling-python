@@ -32,6 +32,9 @@ class Chromosome:
     def __hash__(self):
         return hash(tuple(self.gene))
 
+    def __str__(self):
+        return "{} [{:.2f}]".format(tuple(self.gene), self.get_score())
+
     def get_score(self):
         """Evaluates a score based on chromosome's pattern"""
         return -20 * log10(abs(self.pattern))
