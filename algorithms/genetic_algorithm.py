@@ -65,7 +65,7 @@ class GeneticAlgorithm(BaseAlgorithm):
 
         Chromosome.init_consts(self.N, self.bit_count, self.mutation_factor)
 
-        self.stop_criterion = options.stop_criterion # time, target, iter
+        self.stop_criterion = options.stop_criterion  # time, target, iter
         self.gen_to_repeat = options.gen_to_repeat
         self.time_limit = options.time_limit
         self.stop_after_score = options.stop_after_score
@@ -192,15 +192,15 @@ class GeneticAlgorithm(BaseAlgorithm):
     def make_weights(self, chromosome):
         """Returns e^{iθ} value for a chromosome's θs"""
 
-        angles = [(bits - (2**self.bit_count - 1) / 2) * 2*pi / (2**self.bit_resolution) for bits in chromosome.gene]
+        angles = [(bits - (2**self.bit_count-1)/2) * (2*pi) / (2**self.bit_resolution) for bits in chromosome.gene]
         weights = [complex(cos(theta), sin(theta)) for theta in angles]
         return weights
 
     def crossover(self, p1, p2, c1, c2):
         """Merges two parents' genes to create two children"""
 
-        self.chromosomes[c1] = deepcopy(self.chromosomes[p1])
-        self.chromosomes[c2] = deepcopy(self.chromosomes[p2])
+        self.chromosomes[c1].gene = self.chromosomes[p1].gene.copy()
+        self.chromosomes[c2].gene = self.chromosomes[p2].gene.copy()
         for i in range(self.N):
             if random() >= 0.5:
                 self.chromosomes[c1].gene[i], self.chromosomes[c2].gene[i] = (
@@ -212,10 +212,8 @@ class GeneticAlgorithm(BaseAlgorithm):
         """Creates two children from parents' genes using the AM-GM approximation"""
 
         for ii in range(self.N):
-            g1 = p1.gene[ii]
-            g2 = p2.gene[ii]
-            self.chromosomes[c1].gene[ii] = (g1 + g2) // 2
-            self.chromosomes[c2].gene[ii] = (g1 + g2 + 1) // 2
+            self.chromosomes[c1].gene[ii] = (p1.gene[ii] + p2.gene[ii]) // 2
+            self.chromosomes[c2].gene[ii] = (p1.gene[ii] + p2.gene[ii] + 1) // 2
 
     def initialize_sample(self):
         """Destroys all chromosomes and creates a new random population"""
