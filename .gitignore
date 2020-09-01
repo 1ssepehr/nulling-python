@@ -1,7 +1,10 @@
-test*.py
-*test.py
-.vscode
-**/__pycache__
-.env
 .idea
+.vscode
 .mypy_cache
+
+**/__pycache__
+
+test_*.py
+*_test.py
+
+results
