@@ -1,4 +1,4 @@
-from math import pi, cos, sin, radians
+from math import pi, cos, sin, radians, log10, nan
 from cmath import exp, phase
 from .base_algorithm import BaseAlgorithm
 
@@ -25,51 +25,53 @@ class ButterflyAlgorithm(BaseAlgorithm):
         super().check_parameters()
         assert len(self.null_degrees) == 1
     
-    def get_pattern(self):
+    def update_pattern(self):
         pattern_values = compute_pattern(
             N=self.N,
             k=self.k,
-            weights=[exp(1j * x) for x in self.vector_changes],
+            weights=[exp(1j * -x) for x in self.vector_changes],
             degrees=self.null_degrees,
             use_absolute_value=False
         )
         self.pattern = pattern_values[0].conjugate()
-        print(f'{abs(self.pattern) = }')
 
     def solve(self):
         alpha = (2*pi) / (2**self.bit_resolution)
 
         self.null_deg = self.null_degrees[0]
         self.theta = pi * cos(radians(self.null_deg))
-        self.sum_dir = self.theta * (self.N - 1) / 2
-        self.vector_dirs = [k * self.theta for k in range(self.N)]
-        self.vector_diffs = vectorWrapToPi([x - self.sum_dir for x in self.vector_dirs])
-        self.vector_changes = [0 for _ in range(self.N)]
+        self.vector_dirs = [wrapToPi(k * self.theta) for k in range(self.N)]
+        self.sum_dir = wrapToPi(phase(sum([exp(1j* x) for x in self.vector_dirs])))
+        self.vector_changes = [0.0 for _ in range(self.N)]
         
-        self.get_pattern()
+        self.update_pattern()
 
-        hasTurned = False
-        while not hasTurned:
-            for idx in range(self.N // 2):
-                old_change = self.vector_changes[:]
-                other = self.N - 1 - idx
-                angle_with_sum = wrapToPi(self.vector_diffs[idx] + self.vector_changes[idx])
+        before_loop_pattern = nan
+        while before_loop_pattern != self.pattern:
+            before_loop_pattern = self.pattern
+            for idx in range(self.N // 2): # index for half the vectors
+                original_vector_changes = self.vector_changes[:]
+                original_pattern = self.pattern
+                other = self.N - 1 - idx # the other vector, symmteric to vector[idx] wrt sum
+                angle_with_sum = wrapToPi(self.vector_dirs[idx] + self.vector_changes[idx] - self.sum_dir)
                 
-                if 0 <= angle_with_sum < pi - alpha/2:
+                if 0 <= angle_with_sum < pi - alpha/2: # the vector is after the sum direction (left half)
                     self.vector_changes[idx] += alpha
                     self.vector_changes[other] -= alpha
-                elif -pi + alpha/2 < angle_with_sum <= 0:
+                elif -pi + alpha/2 < angle_with_sum <= 0: # the vector is before the sum direction (right half)
                     self.vector_changes[idx] -= alpha
                     self.vector_changes[other] += alpha
 
-                self.vector_diffs = vectorWrapToPi(self.vector_diffs)
                 self.vector_changes = vectorWrapToPi(self.vector_changes)
                     
-                self.get_pattern()
+                self.update_pattern()
 
-                if (hasTurned := abs(cos(phase(self.pattern) - self.sum_dir) + 1) < 1e-9):
-                    break
+                patternDirectionTurned = abs(cos(phase(self.pattern) - self.sum_dir) + 1) < 1e-9
+                if (patternDirectionTurned):
+                    if abs(original_pattern) < abs(self.pattern):
+                        self.vector_changes = original_vector_changes[:]
+                        self.update_pattern()
 
-        self.vector_changes = old_change[:]
-        self.get_pattern()        
-
+        # print(f'\nFinal pattern value: {abs(self.pattern) = }'
+            #   f'\nFinal score: {-20 * log10(abs(self.pattern))}')
+        return -20 * log10(abs(self.pattern))
