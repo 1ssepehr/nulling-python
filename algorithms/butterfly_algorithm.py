@@ -40,15 +40,18 @@ class ButterflyAlgorithm(BaseAlgorithm):
 
         self.null_deg = self.null_degrees[0]
         self.theta = pi * cos(radians(self.null_deg))
+
         self.vector_dirs = [wrapToPi(k * self.theta) for k in range(self.N)]
         self.sum_dir = wrapToPi(phase(sum([exp(1j* x) for x in self.vector_dirs])))
-        self.vector_changes = [0.0 for _ in range(self.N)]
+
+        self.vector_changes = [0.0] * self.N
+        self.vector_change_limit = (pi * (2**self.bit_count - 1) / 2**self.bit_resolution)
         
         self.update_pattern()
 
-        before_loop_pattern = nan
-        while before_loop_pattern != self.pattern:
-            before_loop_pattern = self.pattern
+        pattern_before_loop = nan
+        while pattern_before_loop != self.pattern:
+            pattern_before_loop = self.pattern
             for idx in range(self.N // 2): # index for half the vectors
                 original_vector_changes = self.vector_changes[:]
                 original_pattern = self.pattern
@@ -61,6 +64,9 @@ class ButterflyAlgorithm(BaseAlgorithm):
                 elif -pi + alpha/2 < angle_with_sum <= 0: # the vector is before the sum direction (right half)
                     self.vector_changes[idx] -= alpha
                     self.vector_changes[other] += alpha
+
+                self.normalize_change_vector(idx)
+                self.normalize_change_vector(other)
 
                 self.vector_changes = vectorWrapToPi(self.vector_changes)
                     
@@ -75,3 +81,12 @@ class ButterflyAlgorithm(BaseAlgorithm):
         # print(f'\nFinal pattern value: {abs(self.pattern) = }'
             #   f'\nFinal score: {-20 * log10(abs(self.pattern))}')
         return -20 * log10(abs(self.pattern))
+
+    def normalize_change_vector(self, idx):
+        limit = self.vector_change_limit
+        
+        if self.vector_changes[idx] > 0:
+            self.vector_changes[idx] = min(limit, self.vector_changes[idx])
+
+        if self.vector_changes[idx] < 0:
+            self.vector_changes[idx] = max(-limit, self.vector_changes[idx])
