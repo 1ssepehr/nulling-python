@@ -15,19 +15,46 @@ class Chromosome:
     MUTATION_FACTOR = None
 
     @classmethod
-    def init_consts(cls, N, bit_count, mutation_factor):
-        cls.N = N
-        cls.BIT_COUNT = bit_count
-        cls.MUTATION_FACTOR = mutation_factor
+    def init_consts(cls, options):
+        cls.N = options.N
+        cls.K = options.k
+        cls.BIT_COUNT = options.bit_count
+        cls.BIT_RESOLUTION = options.bit_resolution
+        cls.MUTATION_FACTOR = options.mutation_factor
+        cls.COOKING_FACTOR = options.cooking_factor
+        cls.NULL_DEGREES = options.null_degrees
 
     @classmethod
     def new_gene(cls):
         return randrange(0, 2**cls.BIT_COUNT)
     
-    def __init__(self):
-        self.gene = [Chromosome.new_gene() for _ in range(self.N)]
+    def __init__(self, initial_weights=None, shufflize=True):
         self.pattern = nan
-        self.needs_update = True
+        if initial_weights is None:
+            self.gene = [Chromosome.new_gene() for _ in range(self.N)]
+        else:
+            # ! This is duplicate code with NullSlider from VisualizerUI
+            angles = [phase(x) for x in initial_weights]
+            self.gene = [
+                int((angle * 2**self.BIT_RESOLUTION / (2*pi)) + 0.5*(2**self.BIT_COUNT-1))
+                for angle in angles
+            ]
+            if shufflize:
+                for idx in range(self.N):
+                    increment = 0
+                    if int(random() > self.COOKING_FACTOR):
+                        if self.gene[idx] == 0:
+                            self.gene[idx] += 1
+                        elif self.gene[idx] == 2*self.BIT_COUNT - 1:
+                            self.gene[idx] -= 1
+                        else:
+                            self.gene[idx] += choice([1, -1])
+            # TODO: Some genes are at MAX, some are 0. We need a way to shake them up so that 
+            # TODO:     1. the overall change is near 0
+            # TODO:     2. each gene changes by maximum 1
+            # increasable_genes = [idx for idx in range(self.N)]
+
+        self.update_pattern()
 
     def __hash__(self):
         return hash(tuple(self.gene))
@@ -35,15 +62,34 @@ class Chromosome:
     def __str__(self):
         return "{} [{:.2f}]".format(tuple(self.gene), self.get_score())
 
+    def update_pattern(self):
+        self.pattern = min(
+            compute_pattern(
+                N=self.N,
+                k=self.K,
+                weights=self.get_weights(),
+                degrees=self.NULL_DEGREES,
+                use_absolute_value=False
+            ),
+            key=abs
+        )
+
     def get_score(self):
         """Evaluates a score based on chromosome's pattern"""
+        self.update_pattern()
         return -20 * log10(abs(self.pattern))
+
+    def get_weights(self):
+        """Returns e^{iθ} value for a chromosome's θs"""
+        angles = [(x - (2**self.BIT_COUNT-1)/2) * (2*pi) / (2**self.BIT_RESOLUTION) for x in self.gene]
+        weights = [complex(cos(theta), sin(theta)) for theta in angles]
+        return weights
 
     def mutate(self):
         for ii in range(self.N):
             if random() <= self.MUTATION_FACTOR:
                 self.gene[ii] = Chromosome.new_gene()
-        self.needs_update = True
+        self.update_pattern()
 
 
 class GeneticAlgorithm(BaseAlgorithm):
@@ -63,7 +109,7 @@ class GeneticAlgorithm(BaseAlgorithm):
         self.mutation_factor = options.mutation_factor
         self.overwrite_mutations = options.overwrite_mutations
 
-        Chromosome.init_consts(self.N, self.bit_count, self.mutation_factor)
+        Chromosome.init_consts(options)
 
         self.stop_criterion = options.stop_criterion  # time, target, iter
         self.gen_to_repeat = options.gen_to_repeat
@@ -97,7 +143,7 @@ class GeneticAlgorithm(BaseAlgorithm):
         solve_function = getattr(self, "solve_" + self.stop_criterion)
         solve_function()
         return (
-            self.make_weights(self.chromosomes[0]),
+            self.chromosomes[0].get_weights(),
             self.chromosomes[0].get_score(),
             self.generations
         )
@@ -109,7 +155,9 @@ class GeneticAlgorithm(BaseAlgorithm):
 
     def solve_target(self):
         start_time = time_ns()
-        while (time_ns() - start_time) // 10**6 <= self.max_time_limit:
+        while ((time_ns() - start_time) // 10**6 <= self.max_time_limit) and (
+            self.chromosomes[0].get_score() < self.stop_after_score
+        ):
             self.step()
 
     def solve_iter(self):
@@ -144,22 +192,8 @@ class GeneticAlgorithm(BaseAlgorithm):
                 self.crossover_bucket(p1, p2, child, child + 1)
 
     def organize_sample(self):
-        """Reorganizes the sample by updating pattern for all chromosomes and sorting them by their scores.
+        """Reorganizes the sample by removing repeated chromosomes and sorting them by their scores.
         Optionally, if use_buckets is True, allocates each chromosome to its respective bucket."""
-
-        # Update pattern
-        for chromosome in self.chromosomes:
-            if chromosome.needs_update:
-                chromosome.pattern = min(
-                    compute_pattern(
-                        N=self.N,
-                        k=self.k,
-                        weights=self.make_weights(chromosome),
-                        degrees=self.null_degrees,
-                        use_absolute_value=False
-                    )
-                )
-                chromosome.needs_update = False
 
         # Remove redundant chromosomes
         hash_list = []
@@ -192,13 +226,6 @@ class GeneticAlgorithm(BaseAlgorithm):
                 mutated = self.chromosomes[idx + self.sample_size - 1]
                 mutated.gene = original.gene.copy()
                 mutated.mutate()
-
-    def make_weights(self, chromosome):
-        """Returns e^{iθ} value for a chromosome's θs"""
-
-        angles = [(bits - (2**self.bit_count-1)/2) * (2*pi) / (2**self.bit_resolution) for bits in chromosome.gene]
-        weights = [complex(cos(theta), sin(theta)) for theta in angles]
-        return weights
 
     def crossover(self, p1, p2, c1, c2):
         """Merges two parents' genes to create two children"""
