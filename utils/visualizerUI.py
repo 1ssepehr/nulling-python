@@ -1,5 +1,5 @@
 from cmath import phase
-from math import log10, pi, sin, cos
+from math import log10, pi, sin, cos, degrees, radians
 
 from PySide2.QtCore import QSize, Qt
 from PySide2.QtWidgets import *
@@ -37,9 +37,10 @@ class NullingSlider(QSlider):
         return weight
 
     def update_value(self, weight):
+        # ! This is duplicate code with Chromosome
         bit_c = self.parent.options.bit_count
         bit_res = self.parent.options.bit_resolution
-        angle = phase(weight)  # (2*pi * value) - pi
+        angle = phase(weight)
         new_value = int((angle * 2**bit_res / (2*pi)) + 0.5*(2**bit_c-1))
         self.blockSignals(True)
         self.setValue(new_value)
@@ -58,12 +59,12 @@ class NullingLineEdit(QLineEdit):
         )
 
     def normal_value(self):
-        angle = float(self.text())
+        angle = radians(float(self.text()))
         weight = complex(cos(angle), sin(angle))
         return weight
 
     def update_value(self, value):
-        self.setText(str(phase(value)))
+        self.setText(str(degrees(phase(value))))
         self.home(False)
 
 
@@ -82,8 +83,6 @@ class MainWindow(QMainWindow):
         self.algorithm = algorithm
         self.options = options
         self.final_weights = self.algorithm.solve()[0]
-        # self.theta_weights = [phase(x) for x in self.final_weights]
-        # self.normal_weights = [(angle + pi) / (2*pi) for angle in self.theta_weights]
 
         self.centralWidget = QWidget(self)
         self.setCentralWidget(self.centralWidget)
@@ -216,7 +215,7 @@ class MainWindow(QMainWindow):
                 except ValueError:
                     newValue = self.final_weights[ii]
 
-            if source == None:
+            if source is None:
                 newValue = self.final_weights[ii]
 
             self.final_weights[ii] = newValue
