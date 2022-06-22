@@ -1,4 +1,4 @@
 matplotlib==3.3.0
-numpy==1.19.1
+numpy==1.22.0
 PySide2==5.15.0
 shiboken2==5.15.0
